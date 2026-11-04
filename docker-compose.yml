@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      HELPDESK_URL: ${HELPDESK_URL:-}
+      HELPDESK_TOKEN: ${HELPDESK_TOKEN:-}
+      DATABASE_URL: ${DATABASE_URL:-}
