@@ -68,3 +68,17 @@ check it builds before you submit.
 Cap it at 3 hours. Go through the levels in order and say in `DECISIONS.md` what you'd do next.
 **Submit even if it's unfinished:** we review everything you did, not only the final result.
 A plain table is enough; polish isn't scored. We never reuse submissions as company work.
+
+## PostgreSQL/Neon connection
+
+Set `DATABASE_URL` locally before starting the application. The project does
+not create, delete, truncate, or alter existing database tables.
+
+To verify the connection without reading application tables:
+
+```bash
+npm run db:check
+```
+
+The command runs only `SELECT 1`. Application queries will be added after the
+existing Neon schema has been reviewed.

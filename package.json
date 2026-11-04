@@ -8,11 +8,13 @@
     "node": ">=22"
   },
   "scripts": {
+    "db:check": "node src/scripts/check-database.js",
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "test": "node --test"
   },
   "dependencies": {
-    "express": "5.2.1"
+    "express": "5.2.1",
+    "pg": "8.16.3"
   }
 }
