@@ -20,10 +20,10 @@ Copy `.env.example` to `.env` and set local values:
 
 ```dotenv
 PORT=8080
-HELPDESK_URL=
-HELPDESK_TOKEN=
-DATABASE_URL=
-CURSOR_SECRET=
+HELPDESK_URL=https://hiring.robusttechhouse.com/practice-api/R3-006
+HELPDESK_TOKEN=9c7aad47aa2ea7a3b12e461698b247f0af9d5828
+DATABASE_URL=postgresql://neondb_owner:npg_D6mShwlEpA7k@ep-late-resonance-b3sbbq2h-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+CURSOR_SECRET=testhome1234567
 ```
 
 `CURSOR_SECRET` should be a long random value and must remain stable while
@@ -81,7 +81,7 @@ the feed without a cursor and relies on idempotent upserts.
 Available immediately after the HTTP server starts:
 
 ```json
-{"ok":true}
+{ "ok": true }
 ```
 
 ### `GET /ready`
