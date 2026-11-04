@@ -8,9 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "db:check": "node src/scripts/check-database.js",
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
+    "db:check": "node --env-file-if-exists=.env src/scripts/check-database.js",
+    "dev": "node --env-file-if-exists=.env --watch src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
     "test": "node --test"
   },
   "dependencies": {

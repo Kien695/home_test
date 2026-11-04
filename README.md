@@ -82,3 +82,14 @@ npm run db:check
 
 The command runs only `SELECT 1`. Application queries will be added after the
 existing Neon schema has been reviewed.
+
+## Helpdesk synchronization
+
+With `HELPDESK_URL`, `HELPDESK_TOKEN`, and `DATABASE_URL` configured, startup
+loads sites, holidays, staff, statuses, six months of requests, and every page
+of request events. It then checks `/v1/changes` every 30 seconds.
+
+Writes use primary-key upserts so repeated feed records are safe. Rate-limit
+responses honor `Retry-After`; an expired change cursor (`410`) restarts the
+feed from the beginning. The synchronizer does not create, truncate, drop, or
+alter database tables.
