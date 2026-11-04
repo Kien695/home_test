@@ -4,7 +4,8 @@ import { HelpdeskClient } from "./integrations/helpdesk/client.js";
 import { Synchronizer } from "./sync/synchronizer.js";
 
 const port = Number.parseInt(process.env.PORT ?? "8080", 10);
-const app = createApp();
+const readiness = { ready: false };
+const app = createApp({ readiness });
 let synchronizer;
 
 const server = app.listen(port, "0.0.0.0", () => {
@@ -16,7 +17,12 @@ if (
   process.env.HELPDESK_URL &&
   process.env.HELPDESK_TOKEN
 ) {
-  synchronizer = new Synchronizer({ api: new HelpdeskClient() });
+  synchronizer = new Synchronizer({
+    api: new HelpdeskClient(),
+    onReady: () => {
+      readiness.ready = true;
+    },
+  });
   synchronizer.start();
 } else {
   console.warn("Helpdesk sync disabled: required environment variables missing");

@@ -9,6 +9,12 @@ import {
   upsertStaff,
   upsertStatus,
 } from "../repositories/helpdesk.js";
+import {
+  loadSlaInputs,
+  removeSlaRow,
+  saveSlaRow,
+} from "../repositories/report.js";
+import { calculateSlaRow } from "../services/sla.js";
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -26,10 +32,16 @@ function initialSyncRange(now = new Date()) {
 }
 
 export class Synchronizer {
-  constructor({ api, pool = getDatabasePool(), pollInterval = POLL_INTERVAL_MS }) {
+  constructor({
+    api,
+    pool = getDatabasePool(),
+    pollInterval = POLL_INTERVAL_MS,
+    onReady = () => {},
+  }) {
     this.api = api;
     this.pool = pool;
     this.pollInterval = pollInterval;
+    this.onReady = onReady;
     this.running = false;
     this.stopped = false;
     this.timer = null;
@@ -101,6 +113,16 @@ export class Synchronizer {
     } finally {
       client.release();
     }
+    await this.recomputeSla(request.id);
+  }
+
+  async recomputeSla(requestId) {
+    const input = await loadSlaInputs(this.pool, requestId);
+    if (!input) return;
+
+    const row = calculateSlaRow(input);
+    if (row) await saveSlaRow(this.pool, row);
+    else await removeSlaRow(this.pool, requestId);
   }
 
   async initialSync(now = new Date()) {
@@ -133,6 +155,11 @@ export class Synchronizer {
 
     if (change.type === "staff.updated" && change.staff) {
       await upsertStaff(this.pool, change.staff);
+      const affected = await this.pool.query(
+        "SELECT request_id FROM report_rows WHERE responder_id = $1",
+        [change.staff.id],
+      );
+      for (const row of affected.rows) await this.recomputeSla(row.request_id);
     }
   }
 
@@ -187,6 +214,7 @@ export class Synchronizer {
     this.stopped = false;
     try {
       await this.initialSync();
+      this.onReady();
       await this.runCycle();
       this.scheduleNextPoll();
     } catch (error) {
