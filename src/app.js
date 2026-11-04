@@ -2,6 +2,8 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { slaReportController } from "./controllers/report-controller.js";
+import { requestsController } from "./controllers/requests-controller.js";
+import { sitesController } from "./controllers/sites-controller.js";
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const publicDirectory = path.join(currentDirectory, "..", "public");
@@ -23,6 +25,8 @@ export function createApp({ readiness = { ready: false } } = {}) {
   });
 
   app.get("/api/sla-report", slaReportController);
+  app.get("/api/requests", requestsController);
+  app.get("/api/sites", sitesController);
 
   app.use((error, _request, response, _next) => {
     if (error.status === 400) {

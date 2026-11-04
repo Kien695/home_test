@@ -4,7 +4,5 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY . .
-RUN chmod +x entrypoint.sh
 EXPOSE 8080
-ENTRYPOINT ["sh", "./entrypoint.sh"]
-CMD ["start"]
+CMD ["npm", "start"]

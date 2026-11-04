@@ -1,20 +1,139 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SLA Report</title>
+    <meta
+      name="description"
+      content="Helpdesk response and completion SLA dashboard"
+    />
+    <title>SLA Performance</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <p class="eyebrow">SLA REPORT</p>
-      <h1>Project đã sẵn sàng</h1>
-      <p>
-        Đây là giao diện khung của ứng dụng. Dữ liệu Helpdesk và báo cáo SLA sẽ
-        được bổ sung ở các giai đoạn tiếp theo.
-      </p>
-      <a href="/health">Kiểm tra health endpoint</a>
-    </main>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="#overview" aria-label="SLA Performance home">
+          <span class="brand-mark">S</span>
+          <span><strong>SLA</strong><small>Performance</small></span>
+        </a>
+        <nav aria-label="Main navigation">
+          <button class="nav-button active" data-view="overview">Overview</button>
+          <button class="nav-button" data-view="requests">Requests</button>
+        </nav>
+        <div id="sync-status" class="sync-status">
+          <span class="status-dot"></span>
+          <span>Checking data</span>
+        </div>
+      </aside>
+
+      <main>
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">HELPDESK ANALYTICS</p>
+            <h1 id="page-title">SLA overview</h1>
+            <p id="page-description" class="subheading">
+              Response and completion performance across all sites.
+            </p>
+          </div>
+          <div class="date-range" aria-label="Report date range">
+            <label>From<input id="from" type="date" /></label>
+            <label>To<input id="to" type="date" /></label>
+            <button id="refresh" class="primary-button">Refresh</button>
+          </div>
+        </header>
+
+        <div id="notice" class="notice hidden" role="status"></div>
+
+        <section id="overview-view" class="view active">
+          <div class="section-toolbar">
+            <label>
+              Site
+              <select id="overview-site"><option value="">All sites</option></select>
+            </label>
+          </div>
+
+          <div class="metrics">
+            <article class="metric-card">
+              <span class="metric-label">Requests</span>
+              <strong id="metric-requests">—</strong>
+              <small>Eligible requests in range</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Average response</span>
+              <strong id="metric-response">—</strong>
+              <small>Business-hours duration</small>
+            </article>
+            <article class="metric-card success">
+              <span class="metric-label">Within target</span>
+              <strong id="metric-target">—</strong>
+              <small>Of requests with a response</small>
+            </article>
+            <article class="metric-card danger">
+              <span class="metric-label">Completed late</span>
+              <strong id="metric-late">—</strong>
+              <small>Of requests with completion data</small>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Responder performance</h2>
+                <p>Current staff names and SLA outcomes.</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Responder</th>
+                    <th>Requests</th>
+                    <th>Within target</th>
+                    <th>Completed late</th>
+                  </tr>
+                </thead>
+                <tbody id="responder-rows"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="requests-view" class="view">
+          <div class="filters">
+            <label>Site<select id="site-filter"><option value="">All sites</option></select></label>
+            <label>Responder<select id="responder-filter"><option value="">All responders</option></select></label>
+            <label>Within target<select id="target-filter"><option value="">All</option><option value="true">Yes</option><option value="false">No</option></select></label>
+            <label>Completed late<select id="late-filter"><option value="">All</option><option value="true">Yes</option><option value="false">No</option></select></label>
+            <label>Sort<select id="sort-filter"><option value="id">ID ascending</option><option value="-id">ID descending</option><option value="response_business_minutes">Response fastest</option><option value="-response_business_minutes">Response slowest</option></select></label>
+          </div>
+
+          <article class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Request</th>
+                    <th>Site</th>
+                    <th>Responder</th>
+                    <th>Response</th>
+                    <th>Within target</th>
+                    <th>Completed late</th>
+                  </tr>
+                </thead>
+                <tbody id="request-rows"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="previous-page" class="secondary-button">Previous</button>
+              <span id="page-number">Page 1</span>
+              <button id="next-page" class="secondary-button">Next</button>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

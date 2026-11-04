@@ -1,95 +1,147 @@
-# Response-time report: starter kit
+# SLA Performance Report
 
-The completed Node/Express application is in `app/`. It synchronizes the Helpdesk API into
-PostgreSQL/Neon, calculates SLA rows, follows the change feed, exposes the required API, and serves
-a responsive dashboard. The original starter remains in `starters/node-express` for reference.
+Node.js/Express application that synchronizes a Helpdesk API into an existing
+PostgreSQL/Neon database, calculates response and completion SLA metrics, and
+serves a responsive dashboard.
 
-The rules are in the brief on your invitation page. Everything else is here.
+## Requirements
 
+- Node.js 22 or later
+- npm
+- An existing PostgreSQL/Neon schema with the required application tables
+- Helpdesk API URL and bearer token
+- Docker with Compose (optional)
+
+The application does not create, truncate, drop, or alter database tables.
+
+## Configuration
+
+Copy `.env.example` to `.env` and set local values:
+
+```dotenv
+PORT=8080
+HELPDESK_URL=
+HELPDESK_TOKEN=
+DATABASE_URL=
+CURSOR_SECRET=
 ```
-docs/contract.md    what your app must return (graded automatically)
-docs/rules.md       the brief's rules with the exact field names
-docs/api.md         the helpdesk API your app reads
-starters/           a runnable starter in Node, Rails and Python: pick one
-DECISIONS.md        fill this in; it is part of your submission
-docker-compose.yml  runs your app
-.env.example        copy to .env and paste in your practice API details
-```
 
-## Setup
+`CURSOR_SECRET` should be a long random value and must remain stable while
+clients walk paginated results. Never commit `.env` or real credentials.
 
-You need Docker (with Compose) and Git.
+## Install and run
 
 ```bash
-git init && git add -A && git commit -m "chore: start from the kit"
-cp .env.example .env                 # paste in HELPDESK_URL and HELPDESK_TOKEN
-cp -r starters/node-express app      # or starters/rails, or starters/python-fastapi
-docker compose up --build            # your app on http://localhost:8080
-curl http://localhost:8080/health    # {"ok": true}
-docker compose run --rm app test     # your tests, exit 0 = pass
+npm install
+npm test
+npm start
 ```
 
-### Configuration and database
+The dashboard is available at `http://localhost:8080`.
 
-Copy `.env.example` to `.env` and provide `HELPDESK_URL`, `HELPDESK_TOKEN`, `DATABASE_URL`, and a
-long random `CURSOR_SECRET`. No secret is sent to the browser. The container runs migrations at
-startup; they can also be run explicitly with `docker compose run --rm app migrate`.
-
-On startup `/health` responds immediately. The worker loads sites, holidays, staff, six months of
-requests and every event page, upserts by Helpdesk IDs, and precomputes `report_rows`. `/ready`
-remains 503 until this finishes. It then polls `/v1/changes` every 30 seconds, persists the cursor,
-retries rate limits using `Retry-After`, and restarts an expired feed cursor after a 410.
-
-Open `http://localhost:8080` for Overview, Requests, and read-only Sites views. All displayed values
-come from this application's `/api/*` routes.
-
-Check the API works:
-
-```bash
-curl -H "Authorization: Bearer $HELPDESK_TOKEN" "$HELPDESK_URL/v1/statuses"
-```
-
-You may replace the starter with your own Node, Rails or Python app. Keep these working:
-`docker compose up`, `docker compose run --rm app test`, port 8080, a service named `app`, and
-reading `HELPDESK_URL` and `HELPDESK_TOKEN` from the environment. You may add a database or cache
-to `docker-compose.yml`.
-
-No Docker? Run the starter directly with those two variables set, but we grade with Docker, so
-check it builds before you submit.
-
-## Submitting
-
-1. Commit as you go (at least 5 commits); we read the history.
-2. Fill in `DECISIONS.md`.
-3. Record a short screen recording (about 3 minutes) of the app, narrated in English.
-4. Push to a **public** repo (e.g. GitHub) and paste the link on your invitation page, or zip the
-   folder **including `.git`** (leave out `node_modules` and `.env`) and upload it there.
-
-Cap it at 3 hours. Go through the levels in order and say in `DECISIONS.md` what you'd do next.
-**Submit even if it's unfinished:** we review everything you did, not only the final result.
-A plain table is enough; polish isn't scored. We never reuse submissions as company work.
-
-## PostgreSQL/Neon connection
-
-Set `DATABASE_URL` locally before starting the application. The project does
-not create, delete, truncate, or alter existing database tables.
-
-To verify the connection without reading application tables:
+To verify only the database connection:
 
 ```bash
 npm run db:check
 ```
 
-The command runs only `SELECT 1`. Application queries will be added after the
-existing Neon schema has been reviewed.
+Development mode with automatic restart:
 
-## Helpdesk synchronization
+```bash
+npm run dev
+```
 
-With `HELPDESK_URL`, `HELPDESK_TOKEN`, and `DATABASE_URL` configured, startup
-loads sites, holidays, staff, statuses, six months of requests, and every page
-of request events. It then checks `/v1/changes` every 30 seconds.
+## Docker
 
-Writes use primary-key upserts so repeated feed records are safe. Rate-limit
-responses honor `Retry-After`; an expired change cursor (`410`) restarts the
-feed from the beginning. The synchronizer does not create, truncate, drop, or
-alter database tables.
+```bash
+docker compose up --build
+```
+
+The Compose service is named `app` and exposes port 8080.
+
+## Synchronization
+
+At startup the worker:
+
+1. Loads sites, holidays, staff, and statuses.
+2. Loads six months of requests using every request page.
+3. Loads every event page for each request.
+4. Upserts source records and precomputes SLA report rows.
+5. Marks `/ready` as ready.
+6. Polls the Helpdesk change feed every 30 seconds.
+
+Primary-key upserts make repeated change records safe. A `429` response honors
+`Retry-After`. When a change cursor expires with `410`, synchronization restarts
+the feed without a cursor and relies on idempotent upserts.
+
+## HTTP API
+
+### `GET /health`
+
+Available immediately after the HTTP server starts:
+
+```json
+{"ok":true}
+```
+
+### `GET /ready`
+
+Returns `503 {"ready":false}` during initial synchronization and
+`200 {"ready":true}` when six months of reports are available.
+
+### `GET /api/sla-report`
+
+Required parameters:
+
+- `from`: `YYYY-MM-DD`
+- `to`: `YYYY-MM-DD`
+
+Example:
+
+```bash
+curl "http://localhost:8080/api/sla-report?from=2026-10-01&to=2026-10-31"
+```
+
+### `GET /api/requests`
+
+Required parameters:
+
+- `from`, `to`: inclusive local-date range
+
+Optional parameters:
+
+- `site_id`
+- `responder_id`
+- `late=true|false`
+- `within_target=true|false`
+- `sort=id|-id|response_business_minutes|-response_business_minutes`
+- `limit=1..200` (default 50)
+- `cursor`: opaque cursor returned by the previous page
+
+Unknown parameters are ignored. Invalid filters, dates, limits, sorts, and
+cursors return HTTP 400. Pagination snapshots expire after 15 minutes.
+
+### `GET /api/sites`
+
+Returns site IDs and current site names for the dashboard. This additive UI
+endpoint does not change the graded report or request response shapes.
+
+## Project structure
+
+```text
+public/                         dashboard assets
+src/config/                     PostgreSQL pool
+src/controllers/                HTTP validation and response handlers
+src/integrations/helpdesk/      Helpdesk API client
+src/repositories/               PostgreSQL queries and upserts
+src/services/                   SLA calculation rules
+src/sync/                       initial sync and change-feed worker
+test/                           Node test suite
+```
+
+## Security notes
+
+- Helpdesk and database credentials remain server-side.
+- Pagination cursors are signed with HMAC.
+- SQL values use parameterized queries.
+- The dashboard renders API values as text rather than injecting HTML.
