@@ -120,6 +120,8 @@ Optional parameters:
 
 Unknown parameters are ignored. Invalid filters, dates, limits, sorts, and
 cursors return HTTP 400. Pagination snapshots expire after 15 minutes.
+The response also includes `X-Total-Count` and `X-Total-Pages` headers for the
+dashboard without changing the contract JSON body.
 
 ### `GET /api/sites`
 

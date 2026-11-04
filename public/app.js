@@ -1,5 +1,6 @@
 const element = (selector) => document.querySelector(selector);
 const elements = (selector) => [...document.querySelectorAll(selector)];
+const REQUEST_PAGE_SIZE = 50;
 
 const state = {
   report: null,
@@ -196,7 +197,7 @@ function requestParameters() {
     from: element("#from").value,
     to: element("#to").value,
     sort: element("#sort-filter").value,
-    limit: "50",
+    limit: String(REQUEST_PAGE_SIZE),
   });
   for (const [selector, name] of [
     ["#site-filter", "site_id"],
@@ -215,7 +216,13 @@ function requestParameters() {
 async function loadRequests() {
   showNotice("Loading requests…");
   try {
-    const result = await getJson(`/api/requests?${requestParameters()}`);
+    const response = await fetch(`/api/requests?${requestParameters()}`);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error ?? `Request failed (${response.status})`);
+    }
+    const total = Number(response.headers.get("X-Total-Count") ?? 0);
+    const totalPages = Number(response.headers.get("X-Total-Pages") ?? 0);
     const body = element("#request-rows");
     body.replaceChildren();
     for (const request of result.data) {
@@ -234,7 +241,18 @@ async function loadRequests() {
     else state.cursors.length = state.page + 1;
     element("#previous-page").disabled = state.page === 0;
     element("#next-page").disabled = result.next_cursor == null;
-    element("#page-number").textContent = `Page ${state.page + 1}`;
+    const firstVisible = total === 0 ? 0 : state.page * REQUEST_PAGE_SIZE + 1;
+    const lastVisible = Math.min(
+      state.page * REQUEST_PAGE_SIZE + result.data.length,
+      total,
+    );
+    element("#request-count").textContent =
+      total === 0
+        ? "0 requests"
+        : `Showing ${firstVisible.toLocaleString()}–${lastVisible.toLocaleString()} of ${total.toLocaleString()} requests`;
+    element("#page-number").textContent = `Page ${
+      totalPages === 0 ? 0 : state.page + 1
+    } of ${totalPages}`;
     hideNotice();
   } catch (error) {
     showNotice(error.message, "error");

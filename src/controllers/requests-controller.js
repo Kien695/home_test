@@ -106,7 +106,13 @@ export function parseRequestsQuery(parameters) {
 
 export async function requestsController(request, response, next) {
   try {
-    const result = await browseRequests(parseRequestsQuery(request.query));
+    const parameters = parseRequestsQuery(request.query);
+    const result = await browseRequests(parameters);
+    response.set("X-Total-Count", String(result.total));
+    response.set(
+      "X-Total-Pages",
+      String(Math.ceil(result.total / parameters.limit)),
+    );
     response.json({
       data: result.data,
       next_cursor: result.next ? cursorCodec.encode(result.next) : null,

@@ -135,6 +135,7 @@ export async function browseRequests(parameters) {
   offset += pageIds.length;
   return {
     data,
+    total: rowIds.length,
     next:
       offset < rowIds.length
         ? { snapshot: snapshotId, offset }

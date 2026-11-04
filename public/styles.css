@@ -76,6 +76,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .filters { margin-bottom: 18px; padding: 16px; }
 .pagination { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 16px 18px; border-top: 1px solid var(--line); }
 .pagination span { min-width: 64px; color: var(--muted); text-align: center; }
+.pagination .request-count { margin-right: auto; text-align: left; }
 
 @media (max-width: 1050px) {
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
